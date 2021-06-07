@@ -1,0 +1,13 @@
+server:
+  port: 7016
+
+spring:
+  servlet:
+    multipart:
+      enabled: true
+      max-request-size: 10MB
+      max-file-size: 10MB
+
+os:
+  file:
+    temp-dir: D:/
