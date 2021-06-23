@@ -6,3 +6,6 @@ http://localhost:7016/swagger-ui.html
 
 # poi-demo
 使用 [apache poi](https://poi.apache.org/) 导出Excel、解析Excel
+
+# jxls-demo
+使用 [JXLS](http://jxls.sourceforge.net/) 导出Excel
