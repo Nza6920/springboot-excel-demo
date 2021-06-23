@@ -10,6 +10,7 @@
     <version>1.0.0</version>
     <modules>
         <module>poi-demo</module>
+        <module>jxls-demo</module>
     </modules>
 
     <properties>
