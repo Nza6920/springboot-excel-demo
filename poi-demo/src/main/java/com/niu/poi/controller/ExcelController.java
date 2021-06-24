@@ -16,7 +16,6 @@ import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -52,15 +51,16 @@ public class ExcelController {
         Workbook workbook = excelService.getTemplate(dto);
         String fileName = "res" + LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME) + ".xlsx";
 
-        try (OutputStream outputStream = new BufferedOutputStream(response.getOutputStream())) {
+        try (BufferedOutputStream outputStream = new BufferedOutputStream(response.getOutputStream())) {
             response.reset();
             response.setContentType("application/vnd.ms-excel;charset=UTF-8");
             response.setCharacterEncoding("UTF-8");
             response.addHeader("Content-Disposition", "attachment;filename=" + new String(fileName.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8));
             workbook.write(outputStream);
+
             outputStream.flush();
         } catch (Exception e) {
-            log.error("导出 Excel 失败");
+            log.error("导出 Excel 失败: ", e);
         }
     }
 

@@ -1,4 +1,6 @@
-package com.niu.springboot.service;
+package com.niu.jxls.service;
+
+import com.niu.jxls.domain.dto.EmployeeDto;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,10 +17,11 @@ public interface ExcelService {
     /**
      * 获取雇员 Excel 列表
      *
+     * @param dto {@link EmployeeDto}
      * @return {@link java.io.File}
-     * @exception  {@link IOException}
+     * @throws {@link IOException}
      * @author nza
      * @createTime 2021/6/22 10:36
      */
-    File getEmployeesExcel() throws IOException;
+    File getEmployeesExcel(EmployeeDto dto) throws IOException;
 }

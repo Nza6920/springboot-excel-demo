@@ -7,11 +7,12 @@ import com.niu.poi.domain.dto.GradeInfo;
 import com.niu.poi.utils.PoiUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.compress.utils.Lists;
-import org.apache.poi.hssf.usermodel.HSSFPalette;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -33,19 +34,17 @@ import java.util.List;
 @Slf4j
 public class ExcelServiceImpl implements ExcelService {
 
-    @Value("${os.file.temp-dir}")
-    private String tempDir;
-
     static final short CUSTOM_GREEN = 9;
-
     static final short DEFAULT_ROW_HEIGHT;
-
     static final int DEFAULT_COLUMN_WIDTH;
 
     static {
         DEFAULT_ROW_HEIGHT = (short) (43 * 20);
         DEFAULT_COLUMN_WIDTH = PoiUtils.convert2PoiWidth(37);
     }
+
+    @Value("${os.file.temp-dir}")
+    private String tempDir;
 
     @Override
     public Workbook getTemplate(ExcelTemplateDto dto) {
@@ -54,17 +53,19 @@ public class ExcelServiceImpl implements ExcelService {
 
         // 创建工作簿
         // 生成.xlsx的excel
-        HSSFWorkbook workbook = new HSSFWorkbook();
+        XSSFWorkbook workbook = new XSSFWorkbook();
         // 自定义颜色
-        customColors(workbook);
+//        customColors(workbook);
         // 创建工作表
-        Sheet sheet = workbook.createSheet();
-        sheet.setDefaultRowHeight(DEFAULT_ROW_HEIGHT);
-        sheet.setDefaultColumnWidth(DEFAULT_COLUMN_WIDTH);
+        XSSFSheet sheet = workbook.createSheet();
 
-        // 第一行
+        // 设置了文件要报错, ○|￣|_
+//        sheet.setDefaultRowHeight(DEFAULT_ROW_HEIGHT);
+//        sheet.setDefaultColumnWidth(DEFAULT_COLUMN_WIDTH);
+
+//        // 第一行
         buildRow1(workbook, sheet, dto);
-        // 第二行
+//        // 第二行
         buildRow2(workbook, sheet, dto);
 
         return workbook;
@@ -72,40 +73,44 @@ public class ExcelServiceImpl implements ExcelService {
 
     @Override
     public List<GradeInfo> getGradeInfoList(File file) throws IOException {
-        InputStream ips = new FileInputStream(file);
-        HSSFWorkbook wb = new HSSFWorkbook(ips);
-        HSSFSheet sheet = wb.getSheetAt(0);
-
         List<GradeInfo> gradeInfoList = Lists.newArrayList();
-        for (Row row : sheet) {
-            // 跳过表头和空行
-            if (row.getRowNum() <= 1 || row.getFirstCellNum() < 0) {
-                continue;
-            }
-            if (!isValid(row.getCell(row.getFirstCellNum()))) {
-                break;
-            }
-            GradeInfo gradeInfo = new GradeInfo();
-            for (Cell cell : row) {
-                GradeColumnEnum columnIndex = GradeColumnEnum.SCORE_COLUMN_INDEX.getEnumByNum(cell.getColumnIndex());
-                switch (columnIndex) {
-                    case STU_NAME_COLUMN_INDEX:
-                        String stuName = cell.getStringCellValue();
-                        gradeInfo.setStuName(stuName);
-                        break;
-                    case SUBJECT_COLUMN_INDEX:
-                        String subject = cell.getStringCellValue();
-                        gradeInfo.setSubject(subject);
-                        break;
-                    default:
-                        double score = cell.getNumericCellValue();
-                        gradeInfo.setScore(score);
+
+        try (InputStream ips = new FileInputStream(file)) {
+            HSSFWorkbook wb = new HSSFWorkbook(ips);
+            HSSFSheet sheet = wb.getSheetAt(0);
+
+            for (Row row : sheet) {
+                if (!isValid(row.getCell(row.getFirstCellNum()))) {
+                    break;
+                }
+                // 跳过表头和空行
+                if (!isSkipRow(row)) {
+                    GradeInfo gradeInfo = new GradeInfo();
+                    for (Cell cell : row) {
+                        GradeColumnEnum columnIndex = GradeColumnEnum.SCORE_COLUMN_INDEX.getEnumByNum(cell.getColumnIndex());
+                        switch (columnIndex) {
+                            case STU_NAME_COLUMN_INDEX:
+                                String stuName = cell.getStringCellValue();
+                                gradeInfo.setStuName(stuName);
+                                break;
+                            case SUBJECT_COLUMN_INDEX:
+                                String subject = cell.getStringCellValue();
+                                gradeInfo.setSubject(subject);
+                                break;
+                            default:
+                                double score = cell.getNumericCellValue();
+                                gradeInfo.setScore(score);
+                        }
+                    }
+                    gradeInfoList.add(gradeInfo);
                 }
             }
-            gradeInfoList.add(gradeInfo);
         }
-
         return gradeInfoList;
+    }
+
+    private boolean isSkipRow(Row row) {
+        return row.getRowNum() <= 1 || row.getFirstCellNum() < 0;
     }
 
     /**
@@ -162,7 +167,7 @@ public class ExcelServiceImpl implements ExcelService {
      * @author nza
      * @createTime 2021/6/4 11:00
      */
-    private void buildRow1(HSSFWorkbook workbook, Sheet sheet, ExcelTemplateDto dto) {
+    private void buildRow1(XSSFWorkbook workbook, Sheet sheet, ExcelTemplateDto dto) {
         CellStyle cellStyle1 = buildHead1CellStyle(workbook);
         Row row1 = sheet.createRow(0);
         row1.setHeight(DEFAULT_ROW_HEIGHT);
@@ -187,7 +192,7 @@ public class ExcelServiceImpl implements ExcelService {
      * @author nza
      * @createTime 2021/6/4 10:59
      */
-    private void buildRow2(HSSFWorkbook workbook, Sheet sheet, ExcelTemplateDto dto) {
+    private void buildRow2(XSSFWorkbook workbook, Sheet sheet, ExcelTemplateDto dto) {
 
         // 列
         List<String> columns = dto.getColumns();
@@ -213,7 +218,7 @@ public class ExcelServiceImpl implements ExcelService {
      *
      * @author nza
      */
-    private CellStyle buildHead1CellStyle(HSSFWorkbook workbook) {
+    private CellStyle buildHead1CellStyle(XSSFWorkbook workbook) {
         Font font = workbook.createFont();
         font.setFontName("微软雅黑");
         // 设置字体大小
@@ -253,16 +258,16 @@ public class ExcelServiceImpl implements ExcelService {
      *
      * @author nza
      */
-    private CellStyle buildHead2CellStyle(HSSFWorkbook workbook) {
+    private CellStyle buildHead2CellStyle(XSSFWorkbook workbook) {
         Font font = workbook.createFont();
         font.setFontName("微软雅黑");
         // 设置字体大小
         font.setFontHeightInPoints((short) 16);
 
-
         CellStyle cellStyle = workbook.createCellStyle();
         cellStyle.setFont(font);
-        cellStyle.setFillForegroundColor(CUSTOM_GREEN);
+
+        cellStyle.setFillForegroundColor(IndexedColors.SEA_GREEN.getIndex());
 
         // 设置填充模式
         cellStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
@@ -280,9 +285,10 @@ public class ExcelServiceImpl implements ExcelService {
      * @author nza
      * @createTime 2021/6/4 11:04
      */
-    private void customColors(HSSFWorkbook workbook) {
-        // 自定义颜色
-        HSSFPalette customPalette = workbook.getCustomPalette();
-        customPalette.setColorAtIndex(CUSTOM_GREEN, (byte) (0xff & 130), (byte) (0xff & 176), (byte) (0xff & 155));
-    }
+//    private void customColors(SXSSFWorkbook workbook) {
+//        // 自定义颜色
+//        HSSFPalette customPalette = workbook.getCustomPalette();
+//        customPalette.setColorAtIndex(CUSTOM_GREEN, (byte) (0xff & 130), (byte) (0xff & 176), (byte) (0xff & 155));
+//    }
+
 }
